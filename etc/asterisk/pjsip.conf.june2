@@ -1,0 +1,79 @@
+
+; ====================================================================
+; CONFIGURACIÓN DE TRANSPORTE DE RED (Mapeo NAT para AWS EC2)
+; ====================================================================
+
+[transport-udp]
+type=transport
+protocol=udp
+bind=0.0.0.0:5060
+local_net=172.31.0.0/16
+external_signaling_address=50.17.12.63
+external_media_address=50.17.12.63
+
+[transport-tls]
+type=transport
+protocol=tls
+bind=0.0.0.0:5061
+cert_file=/etc/asterisk/keys/asterisk.crt
+priv_key_file=/etc/asterisk/keys/asterisk.key
+ca_list_file=/etc/asterisk/keys/ca.crt
+method=tlsv1_2
+local_net=172.31.0.0/16
+external_signaling_address=50.17.12.63
+external_media_address=50.17.12.63
+
+
+; ====================================================================
+; PLANTILLAS BASE DE CONFIGURACIÓN (Seguridad Endurecida)
+; ====================================================================
+
+[plantilla_endpoint](!)
+type=endpoint
+disallow=all
+allow=ulaw
+allow=alaw
+direct_media=no
+language=es
+force_rport=yes
+rtp_symmetric=yes
+transport=transport-tls     ; Fuerza a los endpoints a usar TLS (Puerto 5061)
+media_encryption=sdes       ; Fuerza a los endpoints a usar SRTP (Audio Cifrado)
+
+[plantilla_auth](!)
+type=auth
+auth_type=userpass
+
+[plantilla_aor](!)
+type=aor
+max_contacts=1
+remove_existing=yes
+
+
+; ====================================================================
+; DECLARACIÓN DE EXTENSIONES (Población de prueba)
+; ====================================================================
+
+; --- Extensión 100 ---
+[100](plantilla_aor)
+
+[100-auth](plantilla_auth)
+username=100
+password=ClaveSegura100*
+
+[100](plantilla_endpoint)
+context=poblacion           ; Debe coincidir con el contexto en extensions.conf
+auth=100-auth
+aors=100
+
+; --- Extensión 101 ---
+[101](plantilla_aor)
+
+[101-auth](plantilla_auth)
+username=101
+password=ClaveSegura101*
+
+[101](plantilla_endpoint)
+context=poblacion
+auth=101-auth
+aors=101
